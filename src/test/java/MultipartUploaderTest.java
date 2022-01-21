@@ -22,7 +22,7 @@ public class MultipartUploaderTest {
     private static final String AWS_KEY = ;
     private static final String AWS_SECRET_KEY = ;
     private static final String AWS_REGION = "us-east-1";
-    private static final String S3_BUCKET = ;
+    private static final String S3_BUCKET = "alexey.matveev";
     private static final String S3_FILENAME = "MultipartUploaderTest.txt";
 
     private static final Charset CHARSET = StandardCharsets.UTF_8;
@@ -44,9 +44,9 @@ public class MultipartUploaderTest {
     public void test() throws IOException {
         test(
                 //parts to upload
-                Arrays.asList(1, 2, 4, 5),
+                Arrays.asList(1, 2, 3, 4),
                 //parts to combine
-                Arrays.asList(1, 2, 4, 5)
+                Arrays.asList(1, 2)
         );
     }
 
@@ -89,6 +89,19 @@ public class MultipartUploaderTest {
                 }
             }
         }
+
+        System.out.println("Listing parts...");
+        PartListing partListing = listParts(uploadId);
+        System.out.println("Loaded parts:");
+        System.out.println("==========================================================");
+        for (PartSummary partSummary : partListing.getParts()) {
+            System.out.println("partNumber = " + partSummary.getPartNumber());
+            System.out.println("size = " + partSummary.getSize());
+            System.out.println("lastModified = " + partSummary.getLastModified());
+            System.out.println("==========================================================");
+        }
+
+        System.out.println("Creating final file...");
         completeMultipartUploadRequest(
                 uploadId,
                 partsToCombine.stream().map(partNumberToTag::get).collect(Collectors.toList())
@@ -115,6 +128,11 @@ public class MultipartUploaderTest {
             Assert.assertNull(reader.readLine());
         }
         System.out.println("SUCCESS");
+    }
+
+    private PartListing listParts(String uploadId) {
+        ListPartsRequest listPartsRequest = new ListPartsRequest(S3_BUCKET, S3_FILENAME, uploadId);
+        return amazonS3.listParts(listPartsRequest);
     }
 
     private String initiateMultipartUpload() {
